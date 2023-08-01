@@ -1,14 +1,5 @@
 <?php
 
-function setSessionStats($array)
-{
-    $_SESSION = $array;
-    if (isset($_SESSION['player']['sante']) && isset($_SESSION['adversaire']['sante'])) {
-        $_SESSION['player']['maxSante'] = $_SESSION['player']['sante'];
-        $_SESSION['adversaire']['maxSante'] = $_SESSION['adversaire']['sante'];
-    }
-}
-
 function getAvatarLeft($nom)
 {
     echo '<img src="https://api.dicebear.com/6.x/lorelei/svg?flip=false&seed=' . $nom . '" alt="Avatar" class="avatar">';
@@ -49,3 +40,4 @@ function autoplay(&$self, &$target)
         return heal($self);
     }
 }
+

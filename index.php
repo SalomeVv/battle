@@ -3,25 +3,23 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/lib.php';
 session_start();
 
-if (isset($_SESSION['player']) && isset($_SESSION['adversaire'])) {
-    $player = $_SESSION['player'];
-    $adversaire = $_SESSION['adversaire'];
-} else {
-    $player = null;
-    $adversaire = null;
-}
-if (isset($_SESSION['actions'])) {
-    $actions = $_SESSION['actions'];
-} else {
-    $actions = [];
+
+$player = $_SESSION['player'] ?? null;
+$adversaire = $_SESSION['adversaire'] ?? null;
+
+$actions = $_SESSION['actions'] ?? [];
+
+
+if (isset($_POST['fight'])) {
+    $player = $_POST['player'];
+    $adversaire = $_POST['adversaire'];
+    $_SESSION['player'] = $player;
+    $_SESSION['adversaire'] = $adversaire;
+    $_SESSION['player']['maxSante'] = $_SESSION['player']['sante'];
+    $_SESSION['adversaire']['maxSante'] = $_SESSION['adversaire']['sante'];
 }
 
-if (isset($_SESSION['combat'])) {
-    $combatStarted = $_SESSION['combat'];
-} else {
-    $combatStarted = false;
-}
-
+//////
 if (isset($_POST['attaque'])) {
     $actions[] = attack($player, $adversaire);
     if ($adversaire['sante'] > 0) {
@@ -30,19 +28,22 @@ if (isset($_POST['attaque'])) {
     $_SESSION['actions'] = $actions;
     $_SESSION['player'] = $player;
     $_SESSION['adversaire'] = $adversaire;
-    dump($player, $adversaire);
+    $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
 }
 if (isset($_POST['soin'])) {
     $actions[] = heal($player);
     $actions[] = autoplay($adversaire, $player);
     $_SESSION['actions'] = $actions;
     $_SESSION['player'] = $player;
+    $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
 }
 if (isset($_POST['restart'])) {
+    session_unset();
     session_destroy();
+    $player = $_SESSION['player'] ?? null;
+    $adversaire = $_SESSION['adversaire'] ?? null;
 }
 
-$matchOver = false;
 dump($GLOBALS);
 ?>
 
@@ -62,14 +63,10 @@ dump($GLOBALS);
         <audio id="fight-song" src="fight.mp3"></audio>
         <audio id="hadoudken-song" src="Haduken.mp3"></audio>
         <audio id="fatality-song" src="fatality.mp3"></audio>
-        <?php
-        if (!$matchOver) {
-        ?>
-            <h1 class="animate__animated animate__rubberBand">Battle</h1>
+        <h1 class="animate__animated animate__rubberBand">Battle</h1>
 
         <?php
-        }
-        if (!isset($_POST['player']) && !isset($_POST['adversaire']) && !$combatStarted) {
+        if (!$player || !$adversaire) {
 
         ?>
             <div id="prematch">
@@ -119,7 +116,7 @@ dump($GLOBALS);
                     </div>
                     <div class="row mt-2">
                         <div class="d-flex justify-content-center">
-                            <input id="fight" type="submit" value="FIGHT">
+                            <input name="fight" type="submit" value="FIGHT">
                         </div>
                     </div>
                 </form>
@@ -128,18 +125,8 @@ dump($GLOBALS);
         <?php
 
         } else {
-            $combatStarted = true;
-
-            if (!isset($_SESSION['player']) && !isset($_SESSION['adversaire'])) {
-                setSessionStats($_POST);
-                $_SESSION['combat'] = $combatStarted;
-            }
-
-            $player = $_SESSION['player'];
-            $adversaire = $_SESSION['adversaire'];
 
         ?>
-
             <div id="match" class="row gx-5">
                 <h2>Match</h2>
                 <div class="col-6 ">
@@ -189,29 +176,26 @@ dump($GLOBALS);
                         ?>
 
                     </ul>
-                    <form id='actionForm' action="index.php" method="post">
-                        <div class="d-flex justify-content-center">
-                            <input id="attaque" name="attaque" type="submit" value="Attaquer">
-                            <input name="soin" type="submit" value="Se soigner">
-                        </div>
-                        <div class="d-flex justify-content-center">
-                            <input id="restart" name="restart" type="submit" value="Stopper le combat">
-                        </div>
-                    </form>
+
+                    <?php
+                    if ($player['sante'] > 0 && $adversaire['sante'] > 0) {
+                    ?>
+                        <form id='actionForm' action="index.php" method="post">
+                            <div class="d-flex justify-content-center">
+                                <input id="attaque" name="attaque" type="submit" value="Attaquer">
+                                <input name="soin" type="submit" value="Se soigner">
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <input id="restart" name="restart" type="submit" value="Stopper le combat">
+                            </div>
+                        </form>
+                    <?php
+                    } ?>
                 </div>
 
                 <?php
-                if ($player['sante'] < 1 || $adversaire['sante'] < 1) {
-                    $matchOver = true;
-                    if ($player['sante'] < 1) {
-                        $winner = $adversaire['name'];
-                    } else {
-                        $winner = $player['name'];
-                    }
-                    $_SESSION['winner'] = $winner;
-                }
 
-                if ($matchOver) {
+                if ($player['sante'] < 1 || $adversaire['sante'] < 1) {
 
                 ?>
                     <div id="Resultats">
