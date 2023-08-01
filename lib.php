@@ -1,19 +1,61 @@
 <?php
 
-function getAvatarLeft($nom)
+function checkForm()
 {
-    echo '<img src="https://api.dicebear.com/6.x/lorelei/svg?flip=false&seed=' . $nom . '" alt="Avatar" class="avatar">';
-}
-function getAvatarRight($nom)
-{
-    echo '<img src="https://api.dicebear.com/6.x/lorelei/svg?flip=true&seed=' . $nom . '" alt="Avatar" class="avatar">';
+    $invalidValues = [];
+
+    foreach ($_POST as $key => $value) {
+        if (is_array($value)) {
+            if (intval($value['attaque']) < 0) {
+                $invalidValues[$key]['attaque'] = "L'attaque ne peut pas être inférieure à 0.";
+            }
+            if (intval($value['mana']) < 0) {
+                $invalidValues[$key]['mana'] = "Le mana ne peut pas être inférieur à 0.";
+            }
+            if (intval($value['sante']) < 1) {
+                $invalidValues[$key]['sante'] = "La santé doit être supérieure à 0.";
+            }
+        }
+    }
+    return $invalidValues;
 }
 
-function attack(&$from, &$to)
+function initStats()
 {
-    $to['sante'] -= $from['attaque'];
+    $player = $_POST['player'];
+    $adversaire = $_POST['adversaire'];
+    $player['maxSante'] = $player['sante'];
+    $adversaire['maxSante'] = $adversaire['sante'];
 
-    return "{$from['name']} inflige {$from['attaque']} de dégats à {$to['name']}.";
+    return [$player, $adversaire];
+}
+
+function getSession()
+{
+    $player = $_SESSION['player'] ?? null;
+    $adversaire = $_SESSION['adversaire'] ?? null;
+    $actions = $_SESSION['actions'] ?? [];
+
+    return [$player, $adversaire, $actions];
+}
+function setSession($player, $adversaire, $actions)
+{
+    $_SESSION['player'] = $player;
+    $_SESSION['adversaire'] = $adversaire;
+    $_SESSION['actions'] = $actions;
+}
+function deleteSession()
+{
+    unset($_SESSION);
+    session_destroy();
+}
+
+
+function attack(&$self, &$target)
+{
+    $target['sante'] -= $self['attaque'];
+
+    return "{$self['name']} inflige {$self['attaque']} de dégats à {$target['name']}.";
 }
 
 function heal(&$self)
@@ -40,4 +82,3 @@ function autoplay(&$self, &$target)
         return heal($self);
     }
 }
-

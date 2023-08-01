@@ -4,44 +4,37 @@ require_once __DIR__ . '/lib.php';
 session_start();
 
 
-$player = $_SESSION['player'] ?? null;
-$adversaire = $_SESSION['adversaire'] ?? null;
-
-$actions = $_SESSION['actions'] ?? [];
-
+list($player, $adversaire, $actions) = getSession();
 
 if (isset($_POST['fight'])) {
-    $player = $_POST['player'];
-    $adversaire = $_POST['adversaire'];
-    $_SESSION['player'] = $player;
-    $_SESSION['adversaire'] = $adversaire;
-    $_SESSION['player']['maxSante'] = $_SESSION['player']['sante'];
-    $_SESSION['adversaire']['maxSante'] = $_SESSION['adversaire']['sante'];
+    $invalid = checkForm();
+    if (!empty($invalid)) {
+        $player = null;
+        $adversaire = null;
+    } else {
+        list($player, $adversaire) = initStats();
+        setSession($player, $adversaire, $actions);
+    }
 }
 
-//////
+
 if (isset($_POST['attaque'])) {
     $actions[] = attack($player, $adversaire);
     if ($adversaire['sante'] > 0) {
         $actions[] = autoplay($adversaire, $player);
     }
-    $_SESSION['actions'] = $actions;
-    $_SESSION['player'] = $player;
-    $_SESSION['adversaire'] = $adversaire;
+    setSession($player, $adversaire, $actions);
     $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
 }
 if (isset($_POST['soin'])) {
     $actions[] = heal($player);
     $actions[] = autoplay($adversaire, $player);
-    $_SESSION['actions'] = $actions;
-    $_SESSION['player'] = $player;
+    setSession($player, $adversaire, $actions);
     $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
 }
 if (isset($_POST['restart'])) {
-    session_unset();
-    session_destroy();
-    $player = $_SESSION['player'] ?? null;
-    $adversaire = $_SESSION['adversaire'] ?? null;
+    deleteSession();
+    list($player, $adversaire) = getSession();
 }
 
 dump($GLOBALS);
@@ -71,46 +64,105 @@ dump($GLOBALS);
         ?>
             <div id="prematch">
                 <form id='formFight' action="index.php" method="post">
+
                     <div>
                         Joueur <br>
+                        <div class="errors">
+                            <ul>
+                                <?php foreach ($invalid["player"] ?? [] as $error) { ?>
+                                    <li class="text-danger"><?php echo $error ?></li>
+                                <?php } ?>
+                            </ul>
+                        </div>
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label">Name</label>
-                                <input required type="text" class="form-control" name="player[name]">
+                                <input required type="text" class="form-control" name="player[name]" value="<?php if (isset($_POST["player"]["name"])) {
+                                                                                                                echo $_POST["player"]["name"];
+                                                                                                            } else {
+                                                                                                                echo "";
+                                                                                                            } ?>">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Attaque</label>
-                                <input required type="number" class="form-control" value="100" name="player[attaque]">
+                                <input required type="number" class="form-control <?php if (isset($invalid["player"]["attaque"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["player"]["attaque"])) {
+                                                                                                        echo $_POST["player"]["attaque"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="player[attaque]">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Mana</label>
-                                <input required type="number" class="form-control" value="100" name="player[mana]">
+                                <input required type="number" class="form-control  <?php if (isset($invalid["player"]["mana"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["player"]["mana"])) {
+                                                                                                        echo $_POST["player"]["mana"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="player[mana]">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Santé</label>
-                                <input required type="number" class="form-control" value="100" name="player[sante]">
+                                <input required type="number" class="form-control  <?php if (isset($invalid["player"]["sante"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["player"]["sante"])) {
+                                                                                                        echo $_POST["player"]["sante"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="player[sante]">
                             </div>
                         </div>
                     </div>
                     <hr>
                     <div>
                         Adversaire <br>
+                        <div class="errors">
+                            <ul>
+                                <?php foreach ($invalid["adversaire"] ?? [] as $error) { ?>
+                                    <li class="text-danger"><?php echo $error ?></li>
+                                <?php } ?>
+                            </ul>
+                        </div>
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label">Name</label>
-                                <input required type="text" class="form-control" name="adversaire[name]">
+                                <input required type="text" class="form-control" name="adversaire[name]" value="<?php if (isset($_POST["player"]["name"])) {
+                                                                                                                    echo $_POST["player"]["name"];
+                                                                                                                } else {
+                                                                                                                    echo "";
+                                                                                                                } ?>">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Attaque</label>
-                                <input required type="number" class="form-control" value="100" name="adversaire[attaque]">
+                                <input required type="number" class="form-control <?php if (isset($invalid["adversaire"]["attaque"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["adversaire"]["attaque"])) {
+                                                                                                        echo $_POST["adversaire"]["attaque"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="adversaire[attaque]">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Mana</label>
-                                <input required type="number" class="form-control" value="100" name="adversaire[mana]">
+                                <input required type="number" class="form-control <?php if (isset($invalid["adversaire"]["mana"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["adversaire"]["mana"])) {
+                                                                                                        echo $_POST["adversaire"]["mana"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="adversaire[mana]">
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Santé</label>
-                                <input required type="number" class="form-control" value="100" name="adversaire[sante]">
+                                <input required type="number" class="form-control <?php if (isset($invalid["adversaire"]["sante"])) {
+                                                                                        echo "is-invalid";
+                                                                                    } ?>" value="<?php if (isset($_POST["adversaire"]["sante"])) {
+                                                                                                        echo $_POST["adversaire"]["sante"];
+                                                                                                    } else {
+                                                                                                        echo "100";
+                                                                                                    } ?>" name="adversaire[sante]">
                             </div>
                         </div>
                     </div>
@@ -131,9 +183,7 @@ dump($GLOBALS);
                 <h2>Match</h2>
                 <div class="col-6 ">
                     <div class="position-relative float-end" id="player">
-                        <?php
-                        getAvatarLeft($player['name']);
-                        ?>
+                        <img src="https://api.dicebear.com/6.x/lorelei/svg?flip=false&seed=<?php echo $player['name']; ?>" alt="Avatar" class="avatar">
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                             <?php echo $player['sante']; ?>
                         </span>
@@ -146,9 +196,7 @@ dump($GLOBALS);
                 </div>
                 <div class="col-6" id="adversaire">
                     <div class="position-relative float-start">
-                        <?php
-                        getAvatarRight($adversaire['name']);
-                        ?>
+                        <img src="https://api.dicebear.com/6.x/lorelei/svg?flip=true&seed=<?php echo $adversaire['name']; ?>" alt="Avatar" class="avatar">
                         <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger">
                             <?php echo $adversaire['sante']; ?>
                         </span>
