@@ -6,6 +6,11 @@ session_start();
 
 list($player, $adversaire, $actions) = getSession();
 
+$dbco = connectDB();
+if (isset($player) && isset($adversaire)) {
+    list($battleId, $player['id'], $adversaire['id']) = latestIds($dbco);
+    $actions = getActions($dbco, $battleId);
+}
 
 if (isset($_POST['fight'])) {
     $invalid = checkForm();
@@ -15,6 +20,9 @@ if (isset($_POST['fight'])) {
     } else {
         list($player, $adversaire) = initStats();
         setSession($player, $adversaire, $actions);
+
+        $players = initStats();
+        $ogIds = insertIntoDB($dbco, $players);
     }
 }
 
@@ -23,19 +31,29 @@ if (isset($_POST['attaque'])) {
     if ($adversaire['sante'] > 0) {
         $actions[] = autoplay($adversaire, $player);
     }
-    $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
+    $winner = $player['sante'] > $adversaire['sante'] ? $player : $adversaire;
     setSession($player, $adversaire, $actions);
+
+    updateActions($dbco, $battleId, $actions);
 }
 if (isset($_POST['soin'])) {
-    
+
     $actions[] = heal($player);
     $actions[] = autoplay($adversaire, $player);
-    $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
+    $winner = $player['sante'] > $adversaire['sante'] ? $player : $adversaire;
     setSession($player, $adversaire, $actions);
+
+    updateActions($dbco, $battleId, $actions);
 }
 if (isset($_POST['restart'])) {
     deleteSession();
     list($player, $adversaire) = getSession();
+}
+
+$endGame = (isset($player) && isset($adversaire)) ? ($player['sante'] < 1 || $adversaire['sante'] < 1) : false;
+
+if ($endGame) {
+    updateWinner($dbco, $battleId, $winner['id']);
 }
 
 dump($GLOBALS);
@@ -227,7 +245,7 @@ dump($GLOBALS);
                     </ul>
 
                     <?php
-                    if ($player['sante'] > 0 && $adversaire['sante'] > 0) {
+                    if (!$endGame) {
                     ?>
                         <form id='actionForm' action="index.php" method="post">
                             <div class="d-flex justify-content-center">
@@ -244,13 +262,13 @@ dump($GLOBALS);
 
                 <?php
 
-                if ($player['sante'] < 1 || $adversaire['sante'] < 1) {
+                if ($endGame) {
 
                 ?>
                     <div id="Resultats">
                         <h1>Résultat</h1>
                         <?php
-                        echo "$winner est le vainqueur !";
+                        echo "{$winner['name']} est le vainqueur !";
                         ?>
                         <form class="d-flex justify-content-center" action="" method="post">
                             <input name="restart" type="submit" value="Nouveau combat">
