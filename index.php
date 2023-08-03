@@ -1,10 +1,11 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/lib.php';
+require_once __DIR__ . '/sql.php';
 session_start();
 
-
 list($player, $adversaire, $actions) = getSession();
+
 
 if (isset($_POST['fight'])) {
     $invalid = checkForm();
@@ -17,20 +18,20 @@ if (isset($_POST['fight'])) {
     }
 }
 
-
 if (isset($_POST['attaque'])) {
     $actions[] = attack($player, $adversaire);
     if ($adversaire['sante'] > 0) {
         $actions[] = autoplay($adversaire, $player);
     }
-    setSession($player, $adversaire, $actions);
     $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
+    setSession($player, $adversaire, $actions);
 }
 if (isset($_POST['soin'])) {
+    
     $actions[] = heal($player);
     $actions[] = autoplay($adversaire, $player);
-    setSession($player, $adversaire, $actions);
     $winner = $player['sante'] > $adversaire['sante'] ? $player['name'] : $adversaire['name'];
+    setSession($player, $adversaire, $actions);
 }
 if (isset($_POST['restart'])) {
     deleteSession();
@@ -100,7 +101,7 @@ dump($GLOBALS);
                                                                                     } ?>" value="<?php if (isset($_POST["player"]["mana"])) {
                                                                                                         echo $_POST["player"]["mana"];
                                                                                                     } else {
-                                                                                                        echo "100";
+                                                                                                        echo "150";
                                                                                                     } ?>" name="player[mana]">
                             </div>
                             <div class="col-6">
@@ -110,7 +111,7 @@ dump($GLOBALS);
                                                                                     } ?>" value="<?php if (isset($_POST["player"]["sante"])) {
                                                                                                         echo $_POST["player"]["sante"];
                                                                                                     } else {
-                                                                                                        echo "100";
+                                                                                                        echo "1000";
                                                                                                     } ?>" name="player[sante]">
                             </div>
                         </div>
@@ -151,7 +152,7 @@ dump($GLOBALS);
                                                                                     } ?>" value="<?php if (isset($_POST["adversaire"]["mana"])) {
                                                                                                         echo $_POST["adversaire"]["mana"];
                                                                                                     } else {
-                                                                                                        echo "100";
+                                                                                                        echo "150";
                                                                                                     } ?>" name="adversaire[mana]">
                             </div>
                             <div class="col-6">
@@ -161,7 +162,7 @@ dump($GLOBALS);
                                                                                     } ?>" value="<?php if (isset($_POST["adversaire"]["sante"])) {
                                                                                                         echo $_POST["adversaire"]["sante"];
                                                                                                     } else {
-                                                                                                        echo "100";
+                                                                                                        echo "1000";
                                                                                                     } ?>" name="adversaire[sante]">
                             </div>
                         </div>

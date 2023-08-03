@@ -51,9 +51,10 @@ function deleteSession()
 }
 
 
+
 function attack(&$self, &$target)
 {
-    $target['sante'] -= $self['attaque'];
+    $target['sante'] = max(($target['sante'] - $self['attaque']), 0);
 
     return "{$self['name']} inflige {$self['attaque']} de dégats à {$target['name']}.";
 }
