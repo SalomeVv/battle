@@ -22,14 +22,9 @@ function insertIntoDB($dbco, $players)
     try {
         $ids = [];
         foreach ($players as $player) {
-            $existingPlayers = $dbco->query("SELECT * FROM `players`")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($existingPlayers as $ePlayer) {
-                if ($player['name'] == $ePlayer['name'] && $player['attaque'] == $ePlayer['attaque'] && $player['mana'] == $ePlayer['mana'] && $player['sante'] == $ePlayer['sante']) {
-                    $existingId = $ePlayer['id'];
-                }
-            }
-            if (isset($existingId)) {
-                $ids[] = $existingId;
+            $playerExists = $dbco->query("SELECT * FROM `players` WHERE `name`='$player[name]' AND `attaque`=$player[attaque] AND `mana`=$player[mana] AND `sante`=$player[sante]")->fetch(PDO::FETCH_ASSOC);
+            if ($playerExists) {
+                $ids[] = $playerExists['id'];
             } else {
                 $insertPlayer = $dbco->prepare("INSERT INTO `players`(`name`,`attaque`,`mana`, `sante`)
                 VALUES(:name, :attaque, :mana, :sante)");
@@ -66,9 +61,9 @@ function latestIds($dbco)
 
 function getPlayers($dbco, $ids)
 {
-    $selectPlayer = $dbco->query("SELECT * FROM players WHERE id=$ids[player_id]");
+    $selectPlayer = $dbco->query("SELECT * FROM players WHERE id=$ids[1]");
     $player = $selectPlayer->fetch(PDO::FETCH_ASSOC);
-    $selectAdversaire = $dbco->query("SELECT * FROM players WHERE id=$ids[adversaire_id]");
+    $selectAdversaire = $dbco->query("SELECT * FROM players WHERE id=$ids[2]");
     $adversaire = $selectAdversaire->fetch(PDO::FETCH_ASSOC);
 
     return [$player, $adversaire];

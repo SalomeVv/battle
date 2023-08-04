@@ -29,8 +29,10 @@ CREATE TABLE IF NOT EXISTS `battles` (
   PRIMARY KEY (`id`),
   KEY `fk_adversaire_id` (`adversaire_id`),
   KEY `fk_player_id` (`player_id`),
+  KEY `fk_winner_id` (`winner_id`),
   CONSTRAINT `fk_adversaire_id` FOREIGN KEY (`adversaire_id`) REFERENCES `players` (`id`),
   CONSTRAINT `fk_player_id` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`),
+  CONSTRAINT `fk_winner_id` FOREIGN KEY (`winner_id`) REFERENCES `players` (`id`),
   CONSTRAINT `NoSamePlayers` CHECK ((`player_id` <> `adversaire_id`)),
   CONSTRAINT `WinnerIsPlayer` CHECK ((`winner_id` in (`player_id`,`adversaire_id`)))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
