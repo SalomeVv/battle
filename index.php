@@ -8,7 +8,7 @@ list($player, $adversaire, $actions) = getSession();
 
 $dbco = connectDB();
 if (isset($player) && isset($adversaire)) {
-    list($battleId, $player['id'], $adversaire['id']) = latestIds($dbco);
+    list($battleId, $player['id'], $adversaire['id']) = currentIds($dbco);
     $actions = getActions($dbco, $battleId);
 }
 $existingPlayers = getExistingPlayers($dbco) ?? [];
@@ -19,11 +19,11 @@ if (isset($_POST['fight'])) {
         $player = null;
         $adversaire = null;
     } else {
-        list($player, $adversaire) = initStats();
-        setSession($player, $adversaire, $actions);
-
         $players = initStats();
-        $ogIds = insertIntoDB($dbco, $players);
+        insertIntoDB($dbco, $players);
+        list($player, $adversaire) = getCurrentPlayers($dbco);
+
+        setSession($player, $adversaire, $actions);
     }
 }
 
@@ -48,7 +48,7 @@ if (isset($_POST['soin'])) {
 }
 if (isset($_POST['restart'])) {
     deleteSession();
-    list($player, $adversaire) = getSession();
+    list($player, $adversaire, $actions) = getSession();
 }
 
 $endGame = (isset($player) && isset($adversaire)) ? ($player['sante'] < 1 || $adversaire['sante'] < 1) : false;
@@ -56,8 +56,6 @@ $endGame = (isset($player) && isset($adversaire)) ? ($player['sante'] < 1 || $ad
 if ($endGame) {
     updateWinner($dbco, $battleId, $winner['id']);
 }
-
-dump($GLOBALS);
 ?>
 
 <html lang="fr">
@@ -96,7 +94,7 @@ dump($GLOBALS);
             <div id="prematch">
                 <form id='formFight' action="index.php" method="post">
                     <div class="row">
-                        Joueur <br>
+                        <h4>Joueur</h4>
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label">Sélectionner un joueur existant</label>
@@ -105,8 +103,6 @@ dump($GLOBALS);
                                     <?php foreach ($existingPlayers as $ePlayer) { ?>
                                         <option value="<?php echo $ePlayer['id'] ?>"><?php echo $ePlayer['name'] ?></option>
                                     <?php } ?>
-                                    <!-- <option value="1">Batman</option>
-                                    <option value="2">Superman</option> -->
                                 </select>
                             </div>
                         </div>
@@ -141,7 +137,7 @@ dump($GLOBALS);
                     </div>
                     <hr>
                     <div class="row">
-                        Adversaire <br>
+                        <h4>Adversaire</h4>
                         <div class="row">
                             <div class="col-6">
                                 <label class="form-label">Sélectionner un adversaire existant</label>
@@ -150,8 +146,6 @@ dump($GLOBALS);
                                     <?php foreach ($existingPlayers as $ePlayer) { ?>
                                         <option value="<?php echo $ePlayer['id'] ?>"><?php echo $ePlayer['name'] ?></option>
                                     <?php } ?>
-                                    <!-- <option value="1">Batman</option>
-                                    <option value="2">Superman</option> -->
                                 </select>
                             </div>
                         </div>
@@ -220,6 +214,25 @@ dump($GLOBALS);
                         </ul>
                     </div>
                 </div>
+                <?php if (!$endGame) { ?>
+                    <form id='actionForm' action="index.php" method="post">
+                        <div class="d-flex justify-content-center">
+                            <input class="btn btn-outline-danger" name="attaque" type="submit" value="Attaquer">
+                            <input class="btn btn-outline-success" name="soin" type="submit" value="Se soigner">
+                        </div>
+                        <div class="d-flex justify-content-center">
+                            <input class="btn btn-outline-warning" name="restart" type="submit" value="Stopper le combat">
+                        </div>
+                    </form>
+                <?php } else { ?>
+                    <div id="Resultats">
+                        <h1>Résultat</h1>
+                        <?php echo $winner['name'] ?> est le vainqueur !
+                        <form class="d-flex justify-content-center" action="" method="post">
+                            <input class="btn btn-outline-warning" name="restart" type="submit" value="Nouveau combat">
+                        </form>
+                    </div>
+                <?php } ?>
                 <div id="combats">
                     <h2>Combat</h2>
                     <ul style="max-height: 300px; overflow: auto">
@@ -229,27 +242,7 @@ dump($GLOBALS);
                             </li>
                         <?php } ?>
                     </ul>
-                    <?php if (!$endGame) { ?>
-                        <form id='actionForm' action="index.php" method="post">
-                            <div class="d-flex justify-content-center">
-                                <input class="btn btn-outline-danger" name="attaque" type="submit" value="Attaquer">
-                                <input class="btn btn-outline-success" name="soin" type="submit" value="Se soigner">
-                            </div>
-                            <div class="d-flex justify-content-center">
-                                <input class="btn btn-outline-warning" name="restart" type="submit" value="Stopper le combat">
-                            </div>
-                        </form>
-                    <?php } ?>
                 </div>
-                <?php if ($endGame) { ?>
-                    <div id="Resultats">
-                        <h1>Résultat</h1>
-                        <?php echo $winner['name'] ?> est le vainqueur !
-                        <form class="d-flex justify-content-center" action="" method="post">
-                            <input class="btn btn-outline-warning" name="restart" type="submit" value="Nouveau combat">
-                        </form>
-                    </div>
-                <?php } ?>
             </div>
         <?php } ?>
     </div>

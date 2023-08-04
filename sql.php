@@ -53,7 +53,7 @@ function insertIntoDB($dbco, $players)
     }
 }
 
-function latestIds($dbco)
+function currentIds($dbco)
 {
     $selectLatestBattle = $dbco->query("SELECT id as battle_id, player_id, adversaire_id FROM battles ORDER BY id DESC LIMIT 1");
     $ids = $selectLatestBattle->fetch(PDO::FETCH_NUM);
@@ -63,13 +63,16 @@ function latestIds($dbco)
 
 function getCurrentPlayers($dbco)
 {
-    $ids = latestIds($dbco);
+    $ids = currentIds($dbco);
     $selectPlayer = $dbco->prepare("SELECT * FROM players WHERE id=:playerId");
     $selectPlayer->execute([':playerId' => $ids[1]]);
     $player = $selectPlayer->fetch(PDO::FETCH_ASSOC);
     $selectAdversaire = $dbco->prepare("SELECT * FROM players WHERE id=:adversaireId");
     $selectAdversaire->execute([':adversaireId' => $ids[2]]);
     $adversaire = $selectAdversaire->fetch(PDO::FETCH_ASSOC);
+
+    $player['maxSante'] = $player['sante'];
+    $adversaire['maxSante'] = $adversaire['sante'];
 
     return [$player, $adversaire];
 }
@@ -104,4 +107,44 @@ function updateWinner($dbco, $battleId, $winnerId)
         ':winnerId' => $winnerId,
         ':battleId' => $battleId
     ));
+}
+
+function fightCounts($dbco)
+{
+    return $dbco->query("SELECT count(*) FROM `battles`")->fetchColumn();
+}
+function mostWin($dbco)
+{
+    return $dbco->query("   SELECT name
+                            FROM battles 
+                            JOIN players ON battles.winner_id = players.id
+                            WHERE winner_id IS NOT NULL 
+                            GROUP BY winner_id
+                            ORDER BY COUNT(*) DESC LIMIT 1; ")->fetchColumn();
+}
+function ultLoser($dbco)
+{
+    $dbco->query("  CREATE VIEW losers_vw AS (
+                    (SELECT adversaire_id AS loser_id
+                    FROM battles
+                    WHERE winner_id IS NOT NULL
+                    AND adversaire_id <> winner_id)
+                    UNION ALL
+                    (SELECT player_id AS loser_id
+                    FROM battles
+                    WHERE winner_id IS NOT NULL
+                    AND player_id <> winner_id))
+                    ");
+    $dbco->query("  CREATE VIEW losses_vw AS (
+                    SELECT *, COUNT(*) AS nb_loss 
+                    FROM losers_vw
+                    GROUP BY loser_id)
+                    ");
+    $ultLoser = $dbco->query("   SELECT players.name
+                            FROM losses_vw
+                            JOIN players ON players.id = losses_vw.loser_id
+                            ORDER BY losses_vw.nb_loss DESC LIMIT 1")->fetchColumn();
+    $dbco->query("DROP VIEW losses_vw");
+    $dbco->query("DROP VIEW losers_vw");
+    return $ultLoser;
 }

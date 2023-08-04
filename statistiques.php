@@ -1,5 +1,9 @@
 <?php
+require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/lib.php';
+require_once __DIR__ . '/sql.php';
 
+$dbco = connectDB();
 ?>
 
 <!DOCTYPE html>
@@ -18,9 +22,9 @@
     <h1 class="card-title text-center">Les Statistiques de combats</h1>
     <hr>
     <div class="row">
-        <div class="col-6">Le nombres total de combats :</div>
-        <div class="col-6">Le combatant avec le plus de victoire :</div>
-        <div class="col-6">Le combatant avec le plus de défaite :</div>
+        <div class="col-6">Le nombres total de combats : <?php echo fightCounts($dbco); ?></div>
+        <div class="col-6">Le combatant avec le plus de victoire : <?php echo mostWin($dbco); ?></div>
+        <div class="col-6">Le combatant avec le plus de défaite : <?php echo ultLoser($dbco); ?></div>
         <div class="col-6">Le nombre de match nul :</div>
     </div>
     <hr>
