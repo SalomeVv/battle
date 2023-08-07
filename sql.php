@@ -157,3 +157,9 @@ function ultLoser($dbco)
     $dbco->query("DROP VIEW losers_vw");
     return $ultLoser;
 }
+function unfinished($dbco)
+{
+    return $dbco->query("   SELECT COUNT(*)
+                            FROM battles
+                            WHERE winner_id IS NULL")->fetchColumn();
+}
