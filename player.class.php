@@ -8,6 +8,7 @@ class Player
     public $sante;
     public $currentMana;
     public $currentSante;
+    public $id;
 
     public function __construct($name, $attaque, $mana, $sante)
     {

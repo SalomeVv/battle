@@ -57,7 +57,7 @@ function insertIntoDB($dbco, $players)
 
 function currentIds($dbco)
 {
-    $selectLatestBattle = $dbco->query("SELECT id as battle_id, player_id, adversaire_id FROM battles ORDER BY id DESC LIMIT 1");
+    $selectLatestBattle = $dbco->query("SELECT player_id, adversaire_id, id as battle_id FROM battles ORDER BY id DESC LIMIT 1");
     $ids = $selectLatestBattle->fetch(PDO::FETCH_NUM);
 
     return $ids;
@@ -67,15 +67,17 @@ function getCurrentPlayers($dbco)
 {
     $ids = currentIds($dbco);
     $selectPlayer = $dbco->prepare("SELECT `name`, `attaque`, `mana`, `sante` FROM players WHERE id=:playerId");
-    $selectPlayer->execute([':playerId' => $ids[1]]);
+    $selectPlayer->execute([':playerId' => $ids[0]]);
     // $selectPlayer->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Player');
     $p = $selectPlayer->fetch(PDO::FETCH_ASSOC);
     $player = new Player($p['name'], $p['attaque'], $p['mana'], $p['sante']);
+    $player->id = $ids[0];
     $selectAdversaire = $dbco->prepare("SELECT `name`, `attaque`, `mana`, `sante` FROM players WHERE id=:adversaireId");
-    $selectAdversaire->execute([':adversaireId' => $ids[2]]);
+    $selectAdversaire->execute([':adversaireId' => $ids[1]]);
     // $selectAdversaire->setFetchMode(PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE, 'Player');
     $a = $selectAdversaire->fetch(PDO::FETCH_ASSOC);
     $adversaire = new Player($a['name'], $a['attaque'], $a['mana'], $a['sante']);
+    $adversaire->id = $ids[1];
 
     return [$player, $adversaire];
 }

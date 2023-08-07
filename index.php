@@ -9,10 +9,6 @@ session_start();
 list($player, $adversaire, $battle) = getSession();
 
 $dbco = connectDB();
-if (isset($player) && isset($adversaire) && isset($battle)) {
-    list($battle->id, $player->id, $adversaire->id) = currentIds($dbco);
-    $battle->actions = getActions($dbco, $battle->id);
-}
 $existingPlayers = getExistingPlayers($dbco) ?? [];
 
 if (isset($_POST['fight'])) {
@@ -30,6 +26,7 @@ if (isset($_POST['fight'])) {
         setSession($player, $adversaire, $battle);
     }
 }
+
 if (isset($player) && isset($adversaire) && isset($battle)) {
 
     if (isset($_POST['attaque'])) {
