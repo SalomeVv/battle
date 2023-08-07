@@ -41,7 +41,7 @@ $statColors = getStatColors($existingPlayers, $colors);
             <div class="col-6">Le nombres total de combats : <?php echo fightCounts($dbco); ?></div>
             <div class="col-6">Le combatant avec le plus de victoire : <?php echo mostWin($dbco); ?></div>
             <div class="col-6">Le combatant avec le plus de défaite : <?php echo ultLoser($dbco); ?></div>
-            <div class="col-6">Le nombre de match non terminés : <?php echo unfinished($dbco); ?></div>
+            <div class="col-6">Le nombre de combats non terminés : <?php echo unfinished($dbco); ?></div>
         </div>
         <hr>
         <canvas id="myChart"></canvas>

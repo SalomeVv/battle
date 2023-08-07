@@ -2,14 +2,16 @@
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/sql.php';
+require_once __DIR__ . '/player.class.php';
+require_once __DIR__ . '/battle.class.php';
 session_start();
 
-list($player, $adversaire, $actions) = getSession();
+list($player, $adversaire, $battle) = getSession();
 
 $dbco = connectDB();
-if (isset($player) && isset($adversaire)) {
-    list($battleId, $player['id'], $adversaire['id']) = currentIds($dbco);
-    $actions = getActions($dbco, $battleId);
+if (isset($player) && isset($adversaire) && isset($battle)) {
+    list($battle->id, $player->id, $adversaire->id) = currentIds($dbco);
+    $battle->actions = getActions($dbco, $battle->id);
 }
 $existingPlayers = getExistingPlayers($dbco) ?? [];
 
@@ -19,43 +21,49 @@ if (isset($_POST['fight'])) {
         $player = null;
         $adversaire = null;
     } else {
-        $players = initStats();
-        insertIntoDB($dbco, $players);
-        list($player, $adversaire) = getCurrentPlayers($dbco);
+        $player = new Player($_POST['player']['name'], $_POST['player']['attaque'], $_POST['player']['mana'], $_POST['player']['sante']);
+        $adversaire = new Player(...$_POST['adversaire']);
+        $initIds = insertIntoDB($dbco, [$player, $adversaire]);
+        [$player, $adversaire] = getCurrentPlayers($dbco);
+        $battle = new Battle($initIds[2], $player, $adversaire);
 
-        setSession($player, $adversaire, $actions);
+        setSession($player, $adversaire, $battle);
+    }
+}
+if (isset($player) && isset($adversaire) && isset($battle)) {
+
+    if (isset($_POST['attaque'])) {
+        $battle->actions[] = $player->attack($adversaire);
+        if ($adversaire->currentSante > 0) {
+            $battle->actions[] = $adversaire->autoplay($player);
+        }
+        $battle->getWinner();
+        setSession($player, $adversaire, $battle);
+
+        updateActions($dbco, $battle);
+    }
+    if (isset($_POST['soin'])) {
+
+        $battle->actions[] = $player->heal();
+        $battle->actions[] = $adversaire->autoplay($player);
+        $battle->getWinner();
+        setSession($player, $adversaire, $battle);
+
+        updateActions($dbco, $battle);
+    }
+    if (isset($_POST['restart'])) {
+        deleteSession();
+        list($player, $adversaire, $battle) = getSession();
+    }
+
+    $endGame = (isset($player) && isset($adversaire)) ? ($player->currentSante < 1 || $adversaire->currentSante < 1) : false;
+
+    if ($endGame) {
+        updateWinner($dbco, $battle);
     }
 }
 
-if (isset($_POST['attaque'])) {
-    $actions[] = attack($player, $adversaire);
-    if ($adversaire['sante'] > 0) {
-        $actions[] = autoplay($adversaire, $player);
-    }
-    $winner = $player['sante'] > $adversaire['sante'] ? $player : $adversaire;
-    setSession($player, $adversaire, $actions);
-
-    updateActions($dbco, $battleId, $actions);
-}
-if (isset($_POST['soin'])) {
-
-    $actions[] = heal($player);
-    $actions[] = autoplay($adversaire, $player);
-    $winner = $player['sante'] > $adversaire['sante'] ? $player : $adversaire;
-    setSession($player, $adversaire, $actions);
-
-    updateActions($dbco, $battleId, $actions);
-}
-if (isset($_POST['restart'])) {
-    deleteSession();
-    list($player, $adversaire, $actions) = getSession();
-}
-
-$endGame = (isset($player) && isset($adversaire)) ? ($player['sante'] < 1 || $adversaire['sante'] < 1) : false;
-
-if ($endGame) {
-    updateWinner($dbco, $battleId, $winner['id']);
-}
+dump($GLOBALS);
 ?>
 
 <html lang="fr">
@@ -190,27 +198,27 @@ if ($endGame) {
                 <h2>Match</h2>
                 <div class="col-6 ">
                     <div class="position-relative float-end">
-                        <img id="player" src="https://api.dicebear.com/6.x/lorelei/svg?flip=false&seed=<?php echo $player["name"] ?>" alt="Avatar" class="avatar float-end">
+                        <img id="player" src="https://api.dicebear.com/6.x/lorelei/svg?flip=false&seed=<?php echo $player->name ?>" alt="Avatar" class="avatar float-end">
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            <?php echo $player["sante"] ?>
+                            <?php echo $player->currentSante ?>
                         </span>
                         <ul>
-                            <li>Name : <?php echo $player["name"] ?></li>
-                            <li>Attaque : <?php echo $player["attaque"] ?></li>
-                            <li>Mana : <?php echo $player["mana"] ?></li>
+                            <li>Name : <?php echo $player->name ?></li>
+                            <li>Attaque : <?php echo $player->attaque ?></li>
+                            <li>Mana : <?php echo $player->mana ?></li>
                         </ul>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="position-relative float-start">
-                        <img id="adversaire" src="https://api.dicebear.com/6.x/lorelei/svg?flip=true&seed=<?php echo $adversaire["name"] ?>" alt="Avatar" class="avatar">
+                        <img id="adversaire" src="https://api.dicebear.com/6.x/lorelei/svg?flip=true&seed=<?php echo $adversaire->name ?>" alt="Avatar" class="avatar">
                         <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger">
-                            <?php echo $adversaire["sante"] ?>
+                            <?php echo $adversaire->currentSante ?>
                         </span>
                         <ul>
-                            <li>Name : <?php echo $adversaire["name"] ?></li>
-                            <li>Attaque : <?php echo $adversaire["attaque"] ?></li>
-                            <li>Mana : <?php echo $adversaire["mana"] ?></li>
+                            <li>Name : <?php echo $adversaire->name ?></li>
+                            <li>Attaque : <?php echo $adversaire->attaque ?></li>
+                            <li>Mana : <?php echo $adversaire->currentMana ?></li>
                         </ul>
                     </div>
                 </div>
@@ -227,7 +235,7 @@ if ($endGame) {
                 <?php } else { ?>
                     <div id="Resultats">
                         <h1>Résultat</h1>
-                        <?php echo $winner['name'] ?> est le vainqueur !
+                        <?php echo $battle->winner->name ?> est le vainqueur !
                         <form class="d-flex justify-content-center" action="" method="post">
                             <input class="btn btn-outline-warning" name="restart" type="submit" value="Nouveau combat">
                         </form>
@@ -236,7 +244,7 @@ if ($endGame) {
                 <div id="combats">
                     <h2>Combat</h2>
                     <ul style="max-height: 300px; overflow: auto">
-                        <?php foreach (array_reverse($actions) ?? [] as $action) { ?>
+                        <?php foreach (array_reverse($battle->actions) ?? [] as $action) { ?>
                             <li>
                                 <i class="fa-solid fa-khanda p-1"></i><?php echo $action ?>
                             </li>
@@ -318,25 +326,27 @@ if ($endGame) {
         const selectPlayer = document.querySelector("[name='player[id]']");
         const selectAdversaire = document.querySelector("[name='adversaire[id]']");
         let selectedPlayerId, selectedAdversaireId;
-        [selectPlayer, selectAdversaire].forEach((select) => {
-            select.addEventListener("click", (event) => {
-                event.preventDefault();
-                let playerId = select.value;
-                (select == selectPlayer) ? selectedPlayerId = playerId: selectedAdversaireId = playerId;
-                if (selectedPlayerId != undefined && selectedPlayerId != '') {
-                    (select.options[selectedPlayerId]).disabled = true
-                };
-                if (selectedAdversaireId != undefined && selectedAdversaireId != '') {
-                    (select.options[selectedAdversaireId]).disabled = true
-                };
-                let selected = select.options[select.selectedIndex];
-                let playerName = selected.text;
-                let playerNameInput = (select == selectPlayer) ? document.querySelector("[name='player[name]']") : document.querySelector("[name='adversaire[name]']");
-                playerNameInput.value = playerName;
-                let playerStats = (select == selectPlayer) ? document.getElementById('playerStats') : document.getElementById('adversaireStats');
-                playerStats.style.display = (playerId != "") ? "none" : "block";
+        if (selectPlayer != null && selectAdversaire != null) {
+            [selectPlayer, selectAdversaire].forEach((select) => {
+                select.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    let playerId = select.value;
+                    (select == selectPlayer) ? selectedPlayerId = playerId: selectedAdversaireId = playerId;
+                    if (selectedPlayerId != undefined && selectedPlayerId != '') {
+                        (select.options[selectedPlayerId]).disabled = true
+                    };
+                    if (selectedAdversaireId != undefined && selectedAdversaireId != '') {
+                        (select.options[selectedAdversaireId]).disabled = true
+                    };
+                    let selected = select.options[select.selectedIndex];
+                    let playerName = selected.text;
+                    let playerNameInput = (select == selectPlayer) ? document.querySelector("[name='player[name]']") : document.querySelector("[name='adversaire[name]']");
+                    playerNameInput.value = playerName;
+                    let playerStats = (select == selectPlayer) ? document.getElementById('playerStats') : document.getElementById('adversaireStats');
+                    playerStats.style.display = (playerId != "") ? "none" : "block";
+                })
             })
-        })
+        }
     </script>
     <style>
         .avatar {
