@@ -2,13 +2,13 @@
 
 class Player
 {
+    public $id;
     public $name;
     public $attaque;
     public $mana;
     public $sante;
     public $currentMana;
     public $currentSante;
-    public $id;
 
     public function __construct($name, $attaque, $mana, $sante)
     {

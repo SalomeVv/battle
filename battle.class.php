@@ -1,6 +1,7 @@
 <?php
 
-class Battle {
+class Battle
+{
     public $id;
     public $player;
     public $adversaire;
@@ -15,7 +16,7 @@ class Battle {
     }
     public function getWinner()
     {
-       $this->winner =  $this->player->currentSante > $this->adversaire->currentSante ? $this->player : $this->adversaire;
-       return $this->winner;
+        $this->winner =  $this->player->currentSante > $this->adversaire->currentSante ? $this->player : $this->adversaire;
+        return $this->winner;
     }
 }

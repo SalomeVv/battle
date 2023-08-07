@@ -17,7 +17,7 @@ if (isset($_POST['fight'])) {
         $player = null;
         $adversaire = null;
     } else {
-        $player = new Player($_POST['player']['name'], $_POST['player']['attaque'], $_POST['player']['mana'], $_POST['player']['sante']);
+        $player = new Player(...$_POST['player']);
         $adversaire = new Player(...$_POST['adversaire']);
         $initIds = insertIntoDB($dbco, [$player, $adversaire]);
         [$player, $adversaire] = getCurrentPlayers($dbco);
@@ -202,7 +202,7 @@ dump($GLOBALS);
                         <ul>
                             <li>Name : <?php echo $player->name ?></li>
                             <li>Attaque : <?php echo $player->attaque ?></li>
-                            <li>Mana : <?php echo $player->mana ?></li>
+                            <li>Mana : <?php echo $player->currentMana ?></li>
                         </ul>
                     </div>
                 </div>
