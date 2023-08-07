@@ -83,3 +83,17 @@ function autoplay(&$self, &$target)
         return heal($self);
     }
 }
+
+function getStatColors($data, $palette)
+{
+    $statColors = [];
+    for ($i = 0, $j = 0; $i < sizeof($data); $i++, $j++) {
+        if ($j >= sizeof($palette)) {
+            $j = 0;
+            $statColors[] = $palette[$j];
+        } else {
+            $statColors[] = $palette[$j];
+        }
+    }
+    return $statColors;
+}

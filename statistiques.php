@@ -4,10 +4,25 @@ require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/sql.php';
 
 $dbco = connectDB();
+$existingPlayers = getExistingPlayers($dbco);
+$colors = [
+    'rgba(249, 65, 68, 0.6)',
+    'rgba(243, 114, 44, 0.6)',
+    'rgba(248, 150, 30, 0.6)',
+    'rgba(249, 132, 74, 0.6)',
+    'rgba(249, 199, 79, 0.6)',
+    'rgba(144, 190, 109, 0.6)',
+    'rgba(67, 170, 139, 0.6)',
+    'rgba(77, 144, 142, 0.6)',
+    'rgba(87, 117, 144, 0.6)',
+    'rgba(39, 125, 161, 0.6)'
+];
+$statColors = getStatColors($existingPlayers, $colors);
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,51 +32,60 @@ $dbco = connectDB();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 </head>
+
 <body>
-<div class="container">
-    <h1 class="card-title text-center">Les Statistiques de combats</h1>
-    <hr>
-    <div class="row">
-        <div class="col-6">Le nombres total de combats : <?php echo fightCounts($dbco); ?></div>
-        <div class="col-6">Le combatant avec le plus de victoire : <?php echo mostWin($dbco); ?></div>
-        <div class="col-6">Le combatant avec le plus de défaite : <?php echo ultLoser($dbco); ?></div>
-        <div class="col-6">Le nombre de match nul :</div>
+    <div class="container">
+        <h1 class="card-title text-center">Les Statistiques de combats</h1>
+        <hr>
+        <div class="row">
+            <div class="col-6">Le nombres total de combats : <?php echo fightCounts($dbco); ?></div>
+            <div class="col-6">Le combatant avec le plus de victoire : <?php echo mostWin($dbco); ?></div>
+            <div class="col-6">Le combatant avec le plus de défaite : <?php echo ultLoser($dbco); ?></div>
+            <div class="col-6">Le nombre de match nul :</div>
+        </div>
+        <hr>
+        <canvas id="myChart"></canvas>
     </div>
-    <hr>
-    <canvas id="myChart"></canvas>
-</div>
 
-<script>
-    const ctx = document.getElementById('myChart');
+    <script>
+        const ctx = document.getElementById('myChart');
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Superman', 'Batman', 'Cartman', 'SuperConnard', 'Maloku', 'Patator'],
-            datasets: [{
-                label: 'Statistiques des combats',
-                data: [12, 19, 3, 5, 2, 3],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(255, 159, 64, 0.2)',
-                    'rgba(255, 205, 86, 0.2)',
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(54, 162, 235, 0.2)',
-                    'rgba(153, 102, 255, 0.2)',
-                    'rgba(201, 203, 207, 0.2)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [<?php
+                            foreach ($existingPlayers as $ePlayer) {
+                                echo "'{$ePlayer['name']}', ";
+                            }
+                            ?>],
+                datasets: [{
+                    label: 'Combats gagnés',
+                    data: [<?php
+                            foreach ($existingPlayers as $ePlayer) {
+                                $playerWins = (null != nbWin($dbco, $ePlayer['id'])) ? nbWin($dbco, $ePlayer['id']) : 0;
+                                echo "$playerWins, ";
+                            }
+                            ?>],
+                    backgroundColor: [
+                        <?php
+                        foreach ($statColors as $sColor) {
+                            echo "'$sColor', ";
+                        }
+                        ?>
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
-    });
-</script>
+        });
+    </script>
 
 </body>
+
 </html>

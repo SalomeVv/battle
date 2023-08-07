@@ -122,6 +122,15 @@ function mostWin($dbco)
                             GROUP BY winner_id
                             ORDER BY COUNT(*) DESC LIMIT 1; ")->fetchColumn();
 }
+function nbWin($dbco, $playerId)
+{
+    $nbWin = $dbco->prepare("   SELECT COUNT(*)
+                                FROM battles
+                                WHERE winner_id = :playerId
+                                GROUP BY winner_id");
+    $nbWin->execute([':playerId' => $playerId]);
+    return $nbWin->fetchColumn();
+}
 function ultLoser($dbco)
 {
     $dbco->query("  CREATE VIEW losers_vw AS (
