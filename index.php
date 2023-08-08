@@ -59,8 +59,6 @@ if (isset($player) && isset($adversaire) && isset($battle)) {
         updateWinner($dbco, $battle);
     }
 }
-
-dump($GLOBALS);
 ?>
 
 <html lang="fr">
@@ -89,6 +87,9 @@ dump($GLOBALS);
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link active" aria-current="page" href="statistiques.php">Statistiques</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="contact.php">Contact</a>
                         </li>
                     </ul>
                 </div>

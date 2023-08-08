@@ -151,3 +151,14 @@ function unfinished($dbco)
                             FROM battles
                             WHERE winner_id IS NULL")->fetchColumn();
 }
+
+function saveMessage($dbco, $message)
+{
+    $insertMessage = $dbco->prepare("   INSERT INTO `messages`(`sender`,`email`,`content`)
+                                        VALUES(:sender, :email, :content)");
+    $insertMessage->execute([
+        ':sender' => $message['name'],
+        ':email' => $message['email'],
+        ':content' => $message['message'],
+    ]);
+}
