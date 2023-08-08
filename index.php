@@ -321,20 +321,24 @@ dump($GLOBALS);
         });
 
         const selectPlayer = document.querySelector("[name='player[id]']");
+        const spOptions = document.querySelectorAll("[name='player[id]'] option");
         const selectAdversaire = document.querySelector("[name='adversaire[id]']");
-        let selectedPlayerId, selectedAdversaireId;
+        const saOptions = document.querySelectorAll("[name='adversaire[id]'] option");
         if (selectPlayer != null && selectAdversaire != null) {
+            let selectedPlayerId, selectedAdversaireId;
             [selectPlayer, selectAdversaire].forEach((select) => {
                 select.addEventListener("click", (event) => {
                     event.preventDefault();
                     let playerId = select.value;
                     (select == selectPlayer) ? selectedPlayerId = playerId: selectedAdversaireId = playerId;
-                    if (selectedPlayerId != undefined && selectedPlayerId != '') {
-                        (select.options[selectedPlayerId]).disabled = true
-                    };
-                    if (selectedAdversaireId != undefined && selectedAdversaireId != '') {
-                        (select.options[selectedAdversaireId]).disabled = true
-                    };
+                    (select == selectPlayer) ? selectOptions = spOptions: selectOptions = saOptions;
+                    selectOptions.forEach((option) => {
+                        if ((option == select.options[selectedPlayerId]) || (option == select.options[selectedAdversaireId])) {
+                            option.disabled = true;
+                        } else {
+                            option.disabled = false;
+                        }
+                    });
                     let selected = select.options[select.selectedIndex];
                     let playerName = selected.text;
                     let playerNameInput = (select == selectPlayer) ? document.querySelector("[name='player[name]']") : document.querySelector("[name='adversaire[name]']");
